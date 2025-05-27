@@ -1,1 +1,532 @@
-coming soon 
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Blockchain App</title>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js" type="application/javascript"></script>
+    <!-- For WalletConnect, you'd typically install a package.
+         This is a conceptual placeholder for where you might include it or its provider.
+         In a real app, you'd use: import WalletConnectProvider from "@walletconnect/web3-provider";
+    -->
+    <script src="https://unpkg.com/@walletconnect/web3-provider@1.8.0/dist/umd/index.min.js"></script>
+
+    <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --text-color: #212529;
+            --card-bg: #ffffff;
+            --border-color: #dee2e6;
+            --header-bg: #e9ecef;
+            --success-color: #28a745;
+            --error-color: #dc3545;
+        }
+
+        body.dark-mode {
+            --primary-color: #0d6efd;
+            --secondary-color: #adb5bd;
+            --background-color: #1a1a1a;
+            --text-color: #e0e0e0;
+            --card-bg: #2c2c2c;
+            --border-color: #444444;
+            --header-bg: #343a40;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+
+        header {
+            background-color: var(--header-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 1.5em;
+        }
+
+        .header-actions button {
+            margin-left: 10px;
+            padding: 8px 12px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            background-color: var(--primary-color);
+            color: white;
+        }
+        .header-actions button#theme-toggle {
+            background-color: var(--secondary-color);
+        }
+
+        nav {
+            background-color: var(--card-bg);
+            padding: 10px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+        }
+
+        nav ul li a {
+            padding: 10px 15px;
+            text-decoration: none;
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+        nav ul li a:hover {
+            background-color: var(--background-color);
+            border-radius: 5px;
+        }
+
+        main {
+            flex-grow: 1;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .app-section {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .app-section h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+        .app-section p, .app-section button {
+            font-size: 0.9em;
+        }
+        .app-section button {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .app-section button:hover {
+            opacity: 0.9;
+        }
+        .app-section .disabled {
+            background-color: var(--secondary-color);
+            cursor: not-allowed;
+        }
+
+        #wallet-status {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+        #wallet-status.connected {
+            background-color: var(--success-color);
+            color: white;
+        }
+        #wallet-status.disconnected {
+            background-color: var(--error-color);
+            color: white;
+        }
+        #wallet-status.connecting {
+            background-color: #ffc107;
+            color: #333;
+        }
+
+
+        footer {
+            text-align: center;
+            padding: 15px;
+            background-color: var(--header-bg);
+            border-top: 1px solid var(--border-color);
+            font-size: 0.9em;
+            margin-top: auto;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .header-actions {
+                margin-top: 10px;
+            }
+            nav ul {
+                flex-direction: column;
+                align-items: center;
+            }
+            nav ul li a {
+                display: block;
+                width: 100%;
+                text-align: center;
+            }
+        }
+
+        /* WalletConnect Modal Styling - basic */
+        /* In a real app, WalletConnect provides its own modal. This is just for potential custom overlays if needed. */
+        .wc-modal-overlay {
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .wc-modal-content {
+            background-color: var(--card-bg);
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>My Blockchain App</h1>
+        <div class="header-actions">
+            <span id="connection-info">Wallet Not Connected</span>
+            <button id="connect-metamask">Connect MetaMask</button>
+            <button id="connect-walletconnect">Connect WalletConnect</button>
+            <button id="disconnect-wallet">Disconnect</button>
+            <button id="theme-toggle">Toggle Theme</button>
+        </div>
+    </header>
+
+    <nav>
+        <ul>
+            <li><a href="#dashboard">Dashboard</a></li>
+            <li><a href="#tokens">Tokens</a></li>
+            <li><a href="#nfts">NFT Marketplace</a></li>
+            <li><a href="#staking">Staking</a></li>
+            <li><a href="#dao">DAO</a></li>
+            <li><a href="#dex">DEX</a></li>
+        </ul>
+    </nav>
+
+    <main>
+        <section id="wallet-info" class="app-section">
+            <h2>Wallet Information</h2>
+            <div id="wallet-status" class="disconnected">Status: Not Connected</div>
+            <p><strong>Account:</strong> <span id="account-address">N/A</span></p>
+            <p><strong>Chain ID:</strong> <span id="chain-id">N/A</span></p>
+            <p><strong>Balance (ETH/Native):</strong> <span id="account-balance">N/A</span></p>
+        </section>
+
+        <section id="dashboard" class="app-section">
+            <h2>Dashboard</h2>
+            <p>Overview of your blockchain activity.</p>
+            <button class="disabled">View Real-time Data (Not Implemented)</button>
+        </section>
+
+        <section id="tokens" class="app-section">
+            <h2>Token Economy (ERC-20, ERC-721, ERC-1155)</h2>
+            <p>Manage your tokens, mint, burn, and transfer.</p>
+            <button class="disabled">Mint Token (Not Implemented)</button>
+            <button class="disabled">View My Tokens (Not Implemented)</button>
+        </section>
+
+        <section id="nfts" class="app-section">
+            <h2>NFT Marketplace</h2>
+            <p>Browse, buy, and sell Non-Fungible Tokens.</p>
+            <button class="disabled">Explore Marketplace (Not Implemented)</button>
+        </section>
+
+        <section id="staking" class="app-section">
+            <h2>Staking & Yield Farming</h2>
+            <p>Stake your tokens to earn rewards.</p>
+            <button class="disabled">Stake Tokens (Not Implemented)</button>
+            <button class="disabled">Claim Rewards (Not Implemented)</button>
+        </section>
+
+        <section id="dao" class="app-section">
+            <h2>DAO Governance</h2>
+            <p>Participate in decentralized governance.</p>
+            <button class="disabled">View Proposals (Not Implemented)</button>
+            <button class="disabled">Vote (Not Implemented)</button>
+        </section>
+
+        <section id="dex" class="app-section">
+            <h2>Decentralized Exchange (DEX)</h2>
+            <p>Swap tokens using an AMM.</p>
+            <button class="disabled">Swap Tokens (Not Implemented)</button>
+        </section>
+
+        <section id="storage" class="app-section">
+            <h2>Decentralized Storage (IPFS/Filecoin)</h2>
+            <p>Store and retrieve files from decentralized networks.</p>
+            <button class="disabled">Upload File (Not Implemented)</button>
+        </section>
+
+        <section id="identity" class="app-section">
+            <h2>Identity Management (DIDs)</h2>
+            <p>Manage your decentralized identity and verifiable credentials.</p>
+            <button class="disabled">View My DID (Not Implemented)</button>
+        </section>
+
+        <section id="tx-history" class="app-section">
+            <h2>Transaction History</h2>
+            <p>View your past transactions with advanced filtering.</p>
+            <button class="disabled">Fetch History (Not Implemented)</button>
+        </section>
+    </main>
+
+    <footer>
+        <p>© 2024 Comprehensive Blockchain App. All backend features conceptual.</p>
+    </footer>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const connectMetaMaskButton = document.getElementById('connect-metamask');
+            const connectWalletConnectButton = document.getElementById('connect-walletconnect');
+            const disconnectButton = document.getElementById('disconnect-wallet');
+            const themeToggleButton = document.getElementById('theme-toggle');
+
+            const connectionInfoSpan = document.getElementById('connection-info');
+            const walletStatusDiv = document.getElementById('wallet-status');
+            const accountAddressSpan = document.getElementById('account-address');
+            const chainIdSpan = document.getElementById('chain-id');
+            const accountBalanceSpan = document.getElementById('account-balance');
+
+            let ethersProvider = null;
+            let signer = null;
+            let currentAccount = null;
+            let wcProvider = null; // For WalletConnect
+
+            // --- Theme Toggle ---
+            const applyTheme = (theme) => {
+                if (theme === 'dark') {
+                    document.body.classList.add('dark-mode');
+                    themeToggleButton.textContent = 'Light Mode';
+                } else {
+                    document.body.classList.remove('dark-mode');
+                    themeToggleButton.textContent = 'Dark Mode';
+                }
+            };
+
+            themeToggleButton.addEventListener('click', () => {
+                const isDarkMode = document.body.classList.contains('dark-mode');
+                const newTheme = isDarkMode ? 'light' : 'dark';
+                localStorage.setItem('theme', newTheme);
+                applyTheme(newTheme);
+            });
+
+            // Apply saved theme or default to light
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            applyTheme(savedTheme);
+
+            // --- Wallet Connection Logic ---
+            const updateWalletStatus = (status, message = '') => {
+                walletStatusDiv.textContent = `Status: ${status} ${message}`;
+                walletStatusDiv.className = status.toLowerCase(); // Assumes CSS classes 'connected', 'disconnected', 'connecting'
+            };
+
+            const updateUIWithAccountData = async () => {
+                if (!ethersProvider || !currentAccount) {
+                    connectionInfoSpan.textContent = 'Wallet Not Connected';
+                    accountAddressSpan.textContent = 'N/A';
+                    chainIdSpan.textContent = 'N/A';
+                    accountBalanceSpan.textContent = 'N/A';
+                    updateWalletStatus('Disconnected');
+                    return;
+                }
+
+                try {
+                    const network = await ethersProvider.getNetwork();
+                    const balance = await ethersProvider.getBalance(currentAccount);
+
+                    connectionInfoSpan.textContent = `Connected: ${currentAccount.substring(0, 6)}...${currentAccount.substring(currentAccount.length - 4)}`;
+                    accountAddressSpan.textContent = currentAccount;
+                    chainIdSpan.textContent = network.chainId.toString();
+                    accountBalanceSpan.textContent = ethers.utils.formatEther(balance) + ' ETH/Native'; // Displaying in ETH or native token
+                    updateWalletStatus('Connected');
+                } catch (error) {
+                    console.error('Error fetching account data:', error);
+                    updateWalletStatus('Error', 'Failed to fetch account data.');
+                }
+            };
+            
+            const handleAccountsChanged = (accounts) => {
+                if (accounts.length === 0) {
+                    console.log('MetaMask is locked or the user has not connected any accounts');
+                    disconnectWallet();
+                } else if (accounts[0] !== currentAccount) {
+                    currentAccount = accounts[0];
+                    console.log('Account changed:', currentAccount);
+                    if (signer) signer = ethersProvider.getSigner(); // Get new signer for the new account
+                    updateUIWithAccountData();
+                }
+            };
+
+            const handleChainChanged = (_chainId) => {
+                console.log('Chain changed to:', _chainId);
+                // It's good practice to reload the page or re-initialize the app state
+                // as the chain change might affect contract addresses, etc.
+                // For simplicity, we'll just update the UI.
+                // Re-initialize provider to ensure it's connected to the new chain
+                if (window.ethereum && ethersProvider) { // If MetaMask
+                    ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
+                    if(currentAccount) signer = ethersProvider.getSigner();
+                } else if (wcProvider && ethersProvider) { // If WalletConnect
+                    // WalletConnect provider usually handles chain changes internally,
+                    // but re-fetching network info is good.
+                }
+                updateUIWithAccountData();
+                // alert("Network changed. Please ensure you are on the correct network.");
+            };
+
+            const disconnectWallet = () => {
+                currentAccount = null;
+                signer = null;
+                if (wcProvider && wcProvider.connected) {
+                    wcProvider.disconnect().catch(console.error);
+                }
+                wcProvider = null; 
+                ethersProvider = null; // Clear the ethers provider
+
+                updateUIWithAccountData(); // Clears the UI
+                connectionInfoSpan.textContent = 'Wallet Not Connected';
+                updateWalletStatus('Disconnected');
+                console.log('Wallet disconnected.');
+
+                // Remove listeners if they were specifically for a provider
+                if (window.ethereum) {
+                    window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+                    window.ethereum.removeListener('chainChanged', handleChainChanged);
+                }
+                if (wcProvider) {
+                    wcProvider.removeListener("accountsChanged", handleAccountsChanged);
+                    wcProvider.removeListener("chainChanged", handleChainChanged);
+                    wcProvider.removeListener("disconnect", disconnectWallet); // WalletConnect specific disconnect
+                }
+            };
+
+            // MetaMask Connection
+            connectMetaMaskButton.addEventListener('click', async () => {
+                if (typeof window.ethereum !== 'undefined') {
+                    updateWalletStatus('Connecting', 'MetaMask...');
+                    try {
+                        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        currentAccount = accounts[0];
+                        ethersProvider = new ethers.providers.Web3Provider(window.ethereum);
+                        signer = ethersProvider.getSigner();
+                        
+                        console.log('Connected to MetaMask with account:', currentAccount);
+                        await updateUIWithAccountData();
+
+                        // Listen for account changes
+                        window.ethereum.on('accountsChanged', handleAccountsChanged);
+                        // Listen for chain changes
+                        window.ethereum.on('chainChanged', handleChainChanged);
+
+                    } catch (error) {
+                        console.error('MetaMask connection error:', error);
+                        updateWalletStatus('Error', error.message || 'User rejected connection.');
+                        disconnectWallet(); // Ensure clean state
+                    }
+                } else {
+                    alert('MetaMask is not installed. Please install it to use this feature.');
+                    updateWalletStatus('Error', 'MetaMask not found.');
+                }
+            });
+
+            // WalletConnect Connection
+            connectWalletConnectButton.addEventListener('click', async () => {
+                updateWalletStatus('Connecting', 'WalletConnect...');
+                try {
+                    // You need a Project ID from WalletConnect Cloud (https://cloud.walletconnect.com)
+                    const PROJECT_ID = "YOUR_WALLETCONNECT_PROJECT_ID"; // REPLACE THIS
+                    if (PROJECT_ID === "YOUR_WALLETCONNECT_PROJECT_ID") {
+                        alert("Please replace 'YOUR_WALLETCONNECT_PROJECT_ID' in the script with your actual WalletConnect Project ID.");
+                        updateWalletStatus('Error', 'WalletConnect Project ID missing.');
+                        return;
+                    }
+
+                    wcProvider = new WalletConnectProvider.default({
+                        infuraId: null, // Not needed if using default RPCs or providing your own
+                        projectId: PROJECT_ID, // Required
+                        rpc: { // Optional: provide custom RPCs for specific chains
+                             1: "https://mainnet.infura.io/v3/YOUR_INFURA_ID", // Example for Ethereum Mainnet
+                            // 137: "https://polygon-rpc.com/", // Example for Polygon
+                        },
+                        qrcodeModalOptions: {
+                            mobileLinks: [
+                                "rainbow",
+                                "metamask",
+                                "argent",
+                                "trust",
+                                // Add other popular wallets
+                            ],
+                        },
+                    });
+
+                    // Subscribe to accounts change
+                    wcProvider.on("accountsChanged", handleAccountsChanged);
+
+                    // Subscribe to chainId change
+                    wcProvider.on("chainChanged", handleChainChanged);
+
+                    // Subscribe to session disconnection
+                    wcProvider.on("disconnect", (code, reason) => {
+                        console.log("WalletConnect disconnected:", code, reason);
+                        disconnectWallet();
+                    });
+                    
+                    await wcProvider.enable(); // This will open the QR code modal
+                    
+                    ethersProvider = new ethers.providers.Web3Provider(wcProvider);
+                    signer = ethersProvider.getSigner();
+                    currentAccount = await signer.getAddress();
+
+                    console.log('Connected via WalletConnect with account:', currentAccount);
+                    await updateUIWithAccountData();
+
+                } catch (error) {
+                    console.error('WalletConnect connection error:', error);
+                    updateWalletStatus('Error', 'WalletConnect connection failed or rejected.');
+                    if (wcProvider && wcProvider.close) { // wcProvider might not be fully initialized on early error
+                        await wcProvider.close(); // Ensure modal is closed
+                    }
+                    disconnectWallet(); // Ensure clean state
+                }
+            });
+            
+            disconnectButton.addEventListener('click', disconnectWallet);
+
+            // Initial UI state
+            updateWalletStatus('Disconnected');
+        });
+    </script>
+</body>
+</html>
